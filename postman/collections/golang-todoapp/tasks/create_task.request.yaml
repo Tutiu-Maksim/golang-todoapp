@@ -1,0 +1,11 @@
+$kind: http-request
+url: "{{baseurl}}/tasks"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "title":"math",
+        "author_user_ID":1
+    }
+order: 1000

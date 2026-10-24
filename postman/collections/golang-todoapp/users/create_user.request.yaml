@@ -1,4 +1,11 @@
 $kind: http-request
 url: "{{baseurl}}/users"
 method: POST
+body:
+  type: json
+  content: |-
+    {
+        "full_name":"Petrafsgadsv",
+        "phone_number":"+79266232324"
+    }
 order: 1000
