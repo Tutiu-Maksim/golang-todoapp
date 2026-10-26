@@ -24,8 +24,9 @@ func (r *TasksRepository) PatchTask(
 		title=$1,
 		description=$2,
 		completed=$3,
-		completed_at=$4
-		version=version+1
+		completed_at=$4,
+		version=version + 1
+
 	WHERE id=$5 AND version=$6
 
 	RETURNING 
@@ -36,7 +37,7 @@ func (r *TasksRepository) PatchTask(
 		completed, 
 		created_at, 
 		completed_at, 
-		author_user_id
+		author_user_id;
 	`
 
 	row := r.pool.QueryRow(
