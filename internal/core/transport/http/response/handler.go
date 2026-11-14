@@ -42,9 +42,9 @@ func (h *HTTPResponseHandler) JSONResponse(
 }
 
 func (h *HTTPResponseHandler) HTMLResponse(html []byte) {
+	h.rw.Header().Set("Content-Type", "text/html; charset=utf-8")
 	h.rw.WriteHeader(http.StatusOK)
 
-	h.rw.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if _, err := h.rw.Write(html); err != nil {
 		h.log.Error("write HTML HTTP response")
 	}

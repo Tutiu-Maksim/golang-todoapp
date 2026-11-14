@@ -19,6 +19,13 @@ func CORS() Middleware {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			allowedOrigins := map[string]struct{}{
 				"http://localhost:5050": {},
+				"http://127.0.0.1:5050": {},
+				"http://localhost:3000": {},
+				"http://127.0.0.1:3000": {},
+				"http://localhost:5173": {},
+				"http://127.0.0.1:5173": {},
+				"http://localhost:8080": {},
+				"http://127.0.0.1:8080": {},
 			}
 
 			origin := r.Header.Get("Origin")
@@ -26,7 +33,7 @@ func CORS() Middleware {
 			if _, ok := allowedOrigins[origin]; ok {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
-				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID")
 			}
 
 			if r.Method == http.MethodOptions {

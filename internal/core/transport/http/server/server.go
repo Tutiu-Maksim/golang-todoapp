@@ -47,7 +47,10 @@ func (s *HTTPServer) RegisterAPIRouters(routers ...*APIVersionRouter) {
 
 func (s *HTTPServer) RegisterRouters(routes ...Route) {
 	for _, route := range routes {
-		pattern := fmt.Sprintf("%s %s", route.Method, route.Path)
+		pattern := route.Path
+		if route.Method != "" {
+			pattern = fmt.Sprintf("%s %s", route.Method, route.Path)
+		}
 
 		s.mux.Handle(pattern, route.WithMiddleware())
 	}

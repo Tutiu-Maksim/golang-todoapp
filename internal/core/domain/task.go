@@ -156,7 +156,7 @@ func (p *TaskPatch) Validate() error {
 	return nil
 }
 
-func (t *Task) ApplyPatcb(patch TaskPatch) error {
+func (t *Task) ApplyPatch(patch TaskPatch) error {
 	if err := patch.Validate(); err != nil {
 		return fmt.Errorf("validate task patch: %w", err)
 	}
