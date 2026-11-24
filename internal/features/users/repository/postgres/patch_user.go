@@ -62,9 +62,9 @@ func (r *UsersRepository) PatchUser(
 
 	userDomain := domain.NewUser(
 		userModel.ID,
-		user.Version,
+		userModel.Version,
 		userModel.FullName,
-		user.PhoneNumber,
+		userModel.PhoneNumber,
 	)
 
 	return userDomain, nil

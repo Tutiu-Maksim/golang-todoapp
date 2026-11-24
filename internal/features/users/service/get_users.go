@@ -15,14 +15,14 @@ func (s *UsersService) GetUsers(
 ) ([]domain.User, error) {
 	if limit != nil && *limit < 0 {
 		return nil, fmt.Errorf(
-			"limit must be non-negative: %s",
+			"limit must be non-negative: %w",
 			core_errors.ErrInvalidArgument,
 		)
 	}
 
 	if offset != nil && *offset < 0 {
 		return nil, fmt.Errorf(
-			"offset must be non-negative: %s",
+			"offset must be non-negative: %w",
 			core_errors.ErrInvalidArgument,
 		)
 	}

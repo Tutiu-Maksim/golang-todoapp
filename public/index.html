@@ -1,14 +1,501 @@
 <!DOCTYPE html>
-
-<html>
-
+<html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>ToDo</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Golang Todo</title>
+<style>
+:root {
+  --bg: #f5f6f8; --surface: #fff; --text: #1d2330; --muted: #6a7385; --border: #dfe3ea;
+  --accent: #2563eb; --accent-text: #fff; --danger: #d33a3a; --ok: #1f9d55; --hover: #eef1f6;
+  --radius: 10px; color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151b; --surface: #1b1f27; --text: #e7eaf0; --muted: #96a0b3; --border: #2b3140;
+    --accent: #4f86f7; --accent-text: #0b1020; --danger: #ef6b6b; --ok: #3ccf7b; --hover: #242a36;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+header { padding: 16px 20px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: var(--surface); }
+header h1 { margin: 0; font-size: 20px; }
+header small { color: var(--muted); }
+.layout { display: grid; grid-template-columns: 260px 1fr; gap: 16px; max-width: 1100px; margin: 16px auto; padding: 0 16px; align-items: start; }
+@media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+h2 { margin: 0 0 10px; font-size: 16px; }
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 6px 12px; }
+button:hover:not(:disabled) { background: var(--hover); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+button.primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--accent); }
+button.danger { color: var(--danger); }
+button.small { padding: 3px 9px; font-size: 13px; }
+input[type=text], input[type=tel], input[type=date], textarea, select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+textarea { resize: vertical; min-height: 80px; }
+label { display: block; margin-bottom: 12px; font-size: 13px; color: var(--muted); }
+label > input, label > textarea, label > select { margin-top: 4px; color: var(--text); }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.row.between { justify-content: space-between; }
+.grow { flex: 1; }
+.muted { color: var(--muted); }
+.users { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.users button { width: 100%; text-align: left; border-color: transparent; background: transparent; }
+.users button[aria-pressed=true] { background: var(--accent); color: var(--accent-text); }
+.users .sub { display: block; font-size: 12px; opacity: .75; }
+.tabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.tabs button[aria-selected=true] { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+.task { display: flex; gap: 12px; padding: 12px 0; border-top: 1px solid var(--border); }
+.task:first-child { border-top: 0; }
+.task input[type=checkbox] { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--accent); flex: none; }
+.task .body { flex: 1; min-width: 0; }
+.task .title { font-weight: 600; overflow-wrap: anywhere; }
+.task.done .title { text-decoration: line-through; color: var(--muted); }
+.task .desc { margin: 2px 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.task .meta { font-size: 12px; color: var(--muted); }
+.task .actions { display: flex; gap: 6px; align-items: flex-start; }
+.empty, .loading { padding: 24px 8px; text-align: center; color: var(--muted); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 14px; }
+.stat { border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; }
+.stat b { display: block; font-size: 24px; margin-top: 2px; }
+dialog { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); width: min(440px, calc(100vw - 32px)); padding: 18px; }
+dialog::backdrop { background: rgba(0,0,0,.45); }
+.err { color: var(--danger); font-size: 13px; min-height: 18px; margin: 0 0 8px; }
+#toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 10; max-width: min(360px, calc(100vw - 32px)); }
+.toast { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--danger); border-radius: 8px; padding: 10px 12px; box-shadow: 0 4px 16px rgba(0,0,0,.2); overflow-wrap: anywhere; }
+.toast.ok { border-left-color: var(--ok); }
+</style>
 </head>
-
 <body>
-    Hello, world!
-</body>
+<header>
+  <h1>Golang Todo</h1>
+  <small id="apiInfo"></small>
+</header>
 
+<div class="layout">
+  <aside class="card">
+    <div class="row between"><h2>Пользователи</h2><button class="small primary" id="addUserBtn">+ Добавить</button></div>
+    <ul class="users" id="users"></ul>
+    <div class="row" id="usersPager"></div>
+  </aside>
+
+  <main class="card">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tabTasks" aria-selected="true">Задачи</button>
+      <button role="tab" id="tabStats" aria-selected="false">Статистика</button>
+    </div>
+    <section id="viewTasks"></section>
+    <section id="viewStats" hidden></section>
+  </main>
+</div>
+
+<dialog id="userDialog">
+  <form method="dialog" id="userForm" novalidate>
+    <h2 id="userDialogTitle"></h2>
+    <label>Полное имя *<input type="text" id="uName" maxlength="100" autocomplete="off"></label>
+    <label>Телефон<input type="tel" id="uPhone" placeholder="+79998887766" autocomplete="off"></label>
+    <p class="err" id="userErr"></p>
+    <div class="row between">
+      <button type="button" id="userCancel">Отмена</button>
+      <button type="submit" class="primary" id="userSave">Сохранить</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="taskDialog">
+  <form method="dialog" id="taskForm" novalidate>
+    <h2 id="taskDialogTitle"></h2>
+    <label id="authorRow">Автор *<select id="tAuthor"></select></label>
+    <label>Заголовок *<input type="text" id="tTitle" maxlength="200" autocomplete="off"></label>
+    <label>Описание<textarea id="tDesc"></textarea></label>
+    <p class="err" id="taskErr"></p>
+    <div class="row between">
+      <button type="button" id="taskCancel">Отмена</button>
+      <button type="submit" class="primary" id="taskSave">Сохранить</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toasts" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ============ Настройки ============ */
+// Адрес API берётся из swagger: host + basePath
+const API_BASE_URL = "http://127.0.0.1:5050/api/v1";
+const USERS_LIMIT = 50;
+const TASKS_LIMIT = 10;
+
+/* ============ Утилиты ============ */
+const $ = (id) => document.getElementById(id);
+
+// Создание элементов. Весь текст вставляется через textContent (защита от XSS).
+function h(tag, props = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === "class") node.className = v;
+    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else if (v === true) node.setAttribute(k, "");
+    else if (v !== false && v != null) node.setAttribute(k, v);
+  }
+  for (const c of children.flat()) {
+    if (c == null || c === false) continue;
+    node.append(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+  return node;
+}
+
+function toast(text, ok = false) {
+  const t = h("div", { class: "toast" + (ok ? " ok" : ""), role: "status" }, text);
+  $("toasts").append(t);
+  setTimeout(() => t.remove(), 5000);
+}
+
+function fmtDate(s) {
+  const d = new Date(s);
+  return isNaN(d) ? "" : d.toLocaleString("ru-RU", { dateStyle: "medium", timeStyle: "short" });
+}
+
+/* ============ Слой API (все запросы здесь) ============ */
+async function api(path, { method = "GET", query, body } = {}) {
+  const url = new URL(API_BASE_URL + path, location.href);
+  for (const [k, v] of Object.entries(query || {})) {
+    if (v !== "" && v != null) url.searchParams.set(k, v);
+  }
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    throw new Error("Не удалось подключиться к серверу. Проверьте, что backend запущен и разрешён CORS.");
+  }
+  if (res.status === 204) return null;
+  let data = null;
+  try { data = await res.json(); } catch { /* пустое или не JSON */ }
+  if (!res.ok) {
+    const msg = (data && (data.message || data.error)) || `Ошибка ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
+const Users = {
+  list: (offset) => api("/users", { query: { limit: USERS_LIMIT, offset } }),
+  create: (body) => api("/users", { method: "POST", body }),
+  update: (id, body) => api(`/users/${id}`, { method: "PATCH", body }),
+  remove: (id) => api(`/users/${id}`, { method: "DELETE" }),
+};
+const Tasks = {
+  list: (user_id, offset) => api("/tasks", { query: { user_id, limit: TASKS_LIMIT, offset } }),
+  create: (body) => api("/tasks", { method: "POST", body }),
+  update: (id, body) => api(`/tasks/${id}`, { method: "PATCH", body }),
+  remove: (id) => api(`/tasks/${id}`, { method: "DELETE" }),
+};
+const Stats = {
+  get: (user_id, from, to) => api("/statistics", { query: { user_id, from, to } }),
+};
+
+/* ============ Состояние ============ */
+const state = {
+  users: [], usersOffset: 0,
+  userId: null,      // null = все пользователи
+  tasks: [], tasksOffset: 0, tasksLoading: false, tasksError: "",
+  filter: "all",     // all | active | done (на текущей странице)
+  tab: "tasks",
+  stats: null, statsError: "", statsFrom: "", statsTo: "",
+};
+const userName = (id) => state.users.find((u) => u.id === id)?.full_name ?? `Пользователь #${id}`;
+
+/* ============ Пользователи ============ */
+async function loadUsers() {
+  try {
+    state.users = (await Users.list(state.usersOffset)) || [];
+    if (!state.users.length && state.usersOffset > 0) {
+      state.usersOffset = Math.max(0, state.usersOffset - USERS_LIMIT);
+      return loadUsers();
+    }
+  } catch (e) { toast(e.message); state.users = []; }
+  if (state.userId != null && !state.users.some((u) => u.id === state.userId)) state.userId = null;
+  renderUsers();
+}
+
+function renderUsers() {
+  const list = $("users");
+  list.replaceChildren(
+    h("li", {}, h("button", { "aria-pressed": state.userId === null, onclick: () => selectUser(null) }, "Все пользователи")),
+    ...state.users.map((u) =>
+      h("li", {}, h("button", { "aria-pressed": state.userId === u.id, onclick: () => selectUser(u.id) },
+        u.full_name, h("span", { class: "sub" }, u.phone_number || "без телефона")))
+    )
+  );
+  if (!state.users.length) list.append(h("li", { class: "muted" }, "Пользователей пока нет"));
+  $("usersPager").replaceChildren(
+    h("button", { class: "small", disabled: state.usersOffset === 0, onclick: () => { state.usersOffset -= USERS_LIMIT; loadUsers(); } }, "←"),
+    h("button", { class: "small", disabled: state.users.length < USERS_LIMIT, onclick: () => { state.usersOffset += USERS_LIMIT; loadUsers(); } }, "→")
+  );
+  renderTasks();
+  if (state.tab === "stats") renderStats();
+}
+
+function selectUser(id) {
+  state.userId = id;
+  state.tasksOffset = 0;
+  state.stats = null; state.statsError = "";
+  loadTasks();
+  if (state.tab === "stats") renderStats();
+  renderUsers();
+}
+
+function openUserDialog(user) {
+  $("userDialogTitle").textContent = user ? "Редактировать пользователя" : "Новый пользователь";
+  $("uName").value = user?.full_name ?? "";
+  $("uPhone").value = user?.phone_number ?? "";
+  $("userErr").textContent = "";
+  $("userForm").dataset.id = user ? user.id : "";
+  $("userForm").dataset.orig = user ? JSON.stringify(user) : "";
+  $("userDialog").showModal();
+  $("uName").focus();
+}
+
+$("addUserBtn").onclick = () => openUserDialog(null);
+$("userCancel").onclick = () => $("userDialog").close();
+$("userForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const name = $("uName").value.trim(), phone = $("uPhone").value.trim();
+  if (!name) { $("userErr").textContent = "Введите имя"; return; }
+  if (phone && !/^\+?[0-9\s()-]{5,20}$/.test(phone)) { $("userErr").textContent = "Некорректный номер телефона"; return; }
+  const id = $("userForm").dataset.id;
+  const btn = $("userSave"); btn.disabled = true;
+  try {
+    if (id) {
+      const orig = JSON.parse($("userForm").dataset.orig);
+      const patch = {};
+      if (name !== orig.full_name) patch.full_name = name;
+      if (phone && phone !== (orig.phone_number || "")) patch.phone_number = phone;
+      if (Object.keys(patch).length) await Users.update(Number(id), patch);
+      toast("Пользователь обновлён", true);
+    } else {
+      const body = { full_name: name };
+      if (phone) body.phone_number = phone;
+      const created = await Users.create(body);
+      if (created?.id != null) state.userId = created.id;
+      toast("Пользователь создан", true);
+    }
+    $("userDialog").close();
+    await loadUsers();
+    state.tasksOffset = 0;
+    loadTasks();
+  } catch (err) { $("userErr").textContent = err.message; }
+  finally { btn.disabled = false; }
+});
+
+async function deleteUser(user) {
+  if (!confirm(`Удалить пользователя «${user.full_name}»?`)) return;
+  try {
+    await Users.remove(user.id);
+    toast("Пользователь удалён", true);
+    state.userId = null;
+    await loadUsers();
+    state.tasksOffset = 0;
+    loadTasks();
+  } catch (e) { toast(e.message); }
+}
+
+/* ============ Задачи ============ */
+async function loadTasks() {
+  state.tasksLoading = true; state.tasksError = "";
+  renderTasks();
+  try {
+    state.tasks = (await Tasks.list(state.userId ?? "", state.tasksOffset)) || [];
+    if (!state.tasks.length && state.tasksOffset > 0) {
+      state.tasksOffset = Math.max(0, state.tasksOffset - TASKS_LIMIT);
+      return loadTasks();
+    }
+  } catch (e) { state.tasksError = e.message; state.tasks = []; }
+  state.tasksLoading = false;
+  renderTasks();
+}
+
+function renderTasks() {
+  const root = $("viewTasks");
+  const cur = state.users.find((u) => u.id === state.userId);
+  const head = h("div", { class: "row between", style: "margin-bottom:10px" },
+    h("div", {},
+      h("h2", { style: "margin:0" }, cur ? `Задачи: ${cur.full_name}` : "Все задачи"),
+      cur && h("div", { class: "muted" }, cur.phone_number || "телефон не указан")),
+    h("div", { class: "row" },
+      cur && h("button", { class: "small", onclick: () => openUserDialog(cur) }, "Изменить"),
+      cur && h("button", { class: "small danger", onclick: () => deleteUser(cur) }, "Удалить"),
+      h("button", { class: "primary", disabled: !state.users.length, title: state.users.length ? "" : "Сначала создайте пользователя", onclick: () => openTaskDialog(null) }, "+ Задача"))
+  );
+
+  const filters = h("div", { class: "row", style: "margin-bottom:6px" },
+    ...[["all", "Все"], ["active", "Активные"], ["done", "Выполненные"]].map(([k, label]) =>
+      h("button", { class: "small", "aria-pressed": state.filter === k, style: state.filter === k ? "border-color:var(--accent);color:var(--accent)" : "", onclick: () => { state.filter = k; renderTasks(); } }, label)),
+    h("span", { class: "muted small" }, "(фильтр применяется к текущей странице)")
+  );
+
+  let body;
+  if (state.tasksLoading) body = h("div", { class: "loading" }, "Загрузка…");
+  else if (state.tasksError) body = h("div", { class: "empty" }, h("p", { class: "err" }, state.tasksError), h("button", { onclick: loadTasks }, "Повторить"));
+  else {
+    const shown = state.tasks.filter((t) => state.filter === "all" || (state.filter === "done") === !!t.completed);
+    body = shown.length
+      ? h("div", {}, shown.map(taskRow))
+      : h("div", { class: "empty" }, state.tasks.length ? "Нет задач с таким фильтром" : "Задач пока нет");
+  }
+
+  const pager = h("div", { class: "row between", style: "margin-top:10px" },
+    h("button", { class: "small", disabled: state.tasksOffset === 0 || state.tasksLoading, onclick: () => { state.tasksOffset = Math.max(0, state.tasksOffset - TASKS_LIMIT); loadTasks(); } }, "← Назад"),
+    h("span", { class: "muted" }, `Страница ${Math.floor(state.tasksOffset / TASKS_LIMIT) + 1}`),
+    h("button", { class: "small", disabled: state.tasks.length < TASKS_LIMIT || state.tasksLoading, onclick: () => { state.tasksOffset += TASKS_LIMIT; loadTasks(); } }, "Вперёд →")
+  );
+  root.replaceChildren(head, filters, body, pager);
+}
+
+function taskRow(t) {
+  const cb = h("input", { type: "checkbox", "aria-label": "Выполнено", onchange: () => toggleTask(t, cb) });
+  cb.checked = !!t.completed;
+  return h("div", { class: "task" + (t.completed ? " done" : "") },
+    cb,
+    h("div", { class: "body" },
+      h("div", { class: "title" }, t.title),
+      t.description && h("div", { class: "desc" }, t.description),
+      h("div", { class: "meta" },
+        [state.userId === null && `Автор: ${userName(t.author_user_id)}`,
+         t.created_at && `Создана: ${fmtDate(t.created_at)}`,
+         t.completed && t.completed_at && `Выполнена: ${fmtDate(t.completed_at)}`].filter(Boolean).join(" · "))),
+    h("div", { class: "actions" },
+      h("button", { class: "small", onclick: () => openTaskDialog(t) }, "Изменить"),
+      h("button", { class: "small danger", onclick: () => deleteTask(t) }, "Удалить"))
+  );
+}
+
+async function toggleTask(t, cb) {
+  cb.disabled = true;
+  try {
+    const upd = await Tasks.update(t.id, { completed: cb.checked });
+    Object.assign(t, upd);
+    renderTasks();
+  } catch (e) { cb.checked = !cb.checked; cb.disabled = false; toast(e.message); }
+}
+
+async function deleteTask(t) {
+  if (!confirm(`Удалить задачу «${t.title}»?`)) return;
+  try { await Tasks.remove(t.id); toast("Задача удалена", true); loadTasks(); }
+  catch (e) { toast(e.message); }
+}
+
+function openTaskDialog(task) {
+  $("taskDialogTitle").textContent = task ? "Редактировать задачу" : "Новая задача";
+  $("authorRow").hidden = !!task;
+  $("tAuthor").replaceChildren(...state.users.map((u) => h("option", { value: u.id }, u.full_name)));
+  if (state.userId != null) $("tAuthor").value = state.userId;
+  $("tTitle").value = task?.title ?? "";
+  $("tDesc").value = task?.description ?? "";
+  $("taskErr").textContent = "";
+  $("taskForm").dataset.id = task ? task.id : "";
+  $("taskForm").dataset.orig = task ? JSON.stringify({ title: task.title, description: task.description || "" }) : "";
+  $("taskDialog").showModal();
+  $("tTitle").focus();
+}
+
+$("taskCancel").onclick = () => $("taskDialog").close();
+$("taskForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const title = $("tTitle").value.trim(), description = $("tDesc").value.trim();
+  if (!title) { $("taskErr").textContent = "Введите заголовок"; return; }
+  const id = $("taskForm").dataset.id;
+  const btn = $("taskSave"); btn.disabled = true;
+  try {
+    if (id) {
+      const orig = JSON.parse($("taskForm").dataset.orig);
+      const patch = {};
+      if (title !== orig.title) patch.title = title;
+      if (description !== orig.description) patch.description = description;
+      if (Object.keys(patch).length) await Tasks.update(Number(id), patch);
+      toast("Задача обновлена", true);
+    } else {
+      const author = Number($("tAuthor").value);
+      if (!author) { $("taskErr").textContent = "Выберите автора"; return; }
+      const body = { author_user_id: author, title };
+      if (description) body.description = description;
+      await Tasks.create(body);
+      toast("Задача создана", true);
+      if (state.userId !== null && state.userId !== author) state.userId = author;
+      state.tasksOffset = 0;
+      renderUsers();
+    }
+    $("taskDialog").close();
+    loadTasks();
+  } catch (err) { $("taskErr").textContent = err.message; }
+  finally { btn.disabled = false; }
+});
+
+/* ============ Статистика ============ */
+function renderStats() {
+  const cur = state.users.find((u) => u.id === state.userId);
+  const from = h("input", { type: "date", id: "sFrom", value: state.statsFrom });
+  const to = h("input", { type: "date", id: "sTo", value: state.statsTo });
+  const run = async () => {
+    state.statsFrom = from.value; state.statsTo = to.value;
+    if (from.value && to.value && from.value > to.value) { state.statsError = "Дата начала позже даты окончания"; state.stats = null; return renderStats(); }
+    state.statsError = ""; state.stats = "loading"; renderStats();
+    try { state.stats = await Stats.get(state.userId ?? "", from.value, to.value); }
+    catch (e) { state.stats = null; state.statsError = e.message; }
+    renderStats();
+  };
+  let result;
+  if (state.stats === "loading") result = h("div", { class: "loading" }, "Загрузка…");
+  else if (state.statsError) result = h("p", { class: "err" }, state.statsError);
+  else if (state.stats) {
+    const s = state.stats;
+    const card = (label, value) => h("div", { class: "stat" }, h("span", { class: "muted" }, label), h("b", {}, value));
+    result = h("div", { class: "stats" },
+      card("Создано задач", s.tasks_created ?? 0),
+      card("Выполнено задач", s.tasks_completed ?? 0),
+      card("Доля выполненных", s.tasks_completed_rate != null ? `${Number(s.tasks_completed_rate).toFixed(1)}%` : "—"),
+      card("Среднее время выполнения", s.tasks_average_completion_time || "—"));
+  } else result = h("div", { class: "empty" }, "Выберите период и нажмите «Показать»");
+
+  $("viewStats").replaceChildren(
+    h("h2", {}, cur ? `Статистика: ${cur.full_name}` : "Статистика по всем пользователям"),
+    h("div", { class: "row" },
+      h("label", { class: "grow", style: "margin:0" }, "С", from),
+      h("label", { class: "grow", style: "margin:0" }, "По", to),
+      h("button", { class: "primary", onclick: run }, "Показать")),
+    result
+  );
+}
+
+/* ============ Вкладки ============ */
+function setTab(tab) {
+  state.tab = tab;
+  $("tabTasks").setAttribute("aria-selected", tab === "tasks");
+  $("tabStats").setAttribute("aria-selected", tab === "stats");
+  $("viewTasks").hidden = tab !== "tasks";
+  $("viewStats").hidden = tab !== "stats";
+  if (tab === "stats") renderStats();
+}
+$("tabTasks").onclick = () => setTab("tasks");
+$("tabStats").onclick = () => setTab("stats");
+
+/* ============ Старт ============ */
+(function init() {
+  $("apiInfo").textContent = API_BASE_URL;
+  const today = new Date(), ago = new Date(Date.now() - 30 * 864e5);
+  const iso = (d) => d.toISOString().slice(0, 10);
+  state.statsFrom = iso(ago); state.statsTo = iso(today);
+  renderUsers();
+  loadUsers().then(loadTasks);
+})();
+</script>
+</body>
 </html>

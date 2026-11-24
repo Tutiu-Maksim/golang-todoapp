@@ -46,7 +46,7 @@ func (r *UsersRepository) GetUser(
 		userModel.ID,
 		userModel.Version,
 		userModel.FullName,
-		&userModel.FullName,
+		userModel.PhoneNumber,
 	)
 
 	return userDomain, nil
